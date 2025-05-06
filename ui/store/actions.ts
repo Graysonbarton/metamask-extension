@@ -6214,3 +6214,9 @@ export function setTransactionActive(
     ]);
   };
 }
+
+export async function isRelaySupported(chainId: Hex): Promise<boolean> {
+  return await submitRequestToBackground<boolean>('isRelaySupported', [
+    chainId,
+  ]);
+}
