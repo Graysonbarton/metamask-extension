@@ -16,16 +16,16 @@ const meta: Meta<typeof IconButton> = {
     Icon: { control: 'object' },
     disabled: { control: 'boolean' },
     label: { control: 'text' },
-    tooltipRender: { control: 'function' },
     className: { control: 'text' },
+    ariaLabel: { control: 'text' },
   },
   args: {
     onClick: () => {},
-    Icon: <Icon name={IconName.Add} color={IconColor.primaryInverse} />,
+    Icon: <Icon name={IconName.Add} />,
     disabled: false,
     label: 'Icon Button',
-    tooltipRender: undefined,
     className: '',
+    ariaLabel: '',
   },
 };
 
@@ -34,4 +34,3 @@ type Story = StoryObj<typeof IconButton>;
 
 export const Default: Story = {};
 
-Default.storyName = 'Default';

@@ -67,7 +67,6 @@ import IconButton from '../../ui/icon-button';
 import useRamps from '../../../hooks/ramps/useRamps/useRamps';
 import useBridging from '../../../hooks/bridge/useBridging';
 ///: END:ONLY_INCLUDE_IF
-import { ReceiveModal } from '../../multichain/receive-modal';
 import {
   setSwitchedNetworkDetails,
   setActiveNetworkWithError,
@@ -98,13 +97,11 @@ type CoinButtonsProps = {
   defaultSwapsToken?: SwapsEthToken;
   ///: END:ONLY_INCLUDE_IF
   classPrefix?: string;
-  iconButtonClassName?: string;
 };
 
 const CoinButtons = ({
   account,
   chainId,
-  trackingLocation,
   isSwapsChain,
   isSigningEnabled,
   ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
@@ -113,15 +110,12 @@ const CoinButtons = ({
   defaultSwapsToken,
   ///: END:ONLY_INCLUDE_IF
   classPrefix = 'coin',
-  iconButtonClassName = '',
 }: CoinButtonsProps) => {
   const t = useContext(I18nContext);
   const dispatch = useDispatch();
 
   const trackEvent = useContext(MetaMetricsContext);
-  const [showReceiveModal, setShowReceiveModal] = useState(false);
 
-  const { address: selectedAddress } = account;
   const history = useHistory();
   const networks = useSelector(getNetworkConfigurationIdByChainId) as Record<
     string,
@@ -363,132 +357,99 @@ const CoinButtons = ({
   return (
     <Box
       display={Display.Flex}
-      justifyContent={JustifyContent.spaceEvenly}
+      justifyContent={JustifyContent.spaceBetween}
       width={BlockSize.Full}
+      gap={4}
     >
       {
         ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
-        <IconButton
-          className={`${classPrefix}-overview__button`}
-          iconButtonClassName={iconButtonClassName}
-          Icon={
-            <Icon
-              name={IconName.PlusAndMinus}
-              color={IconColor.iconDefault}
-              size={IconSize.Sm}
-            />
-          }
-          disabled={!isBuyableChain}
-          data-testid={`${classPrefix}-overview-buy`}
-          label={t('buyAndSell')}
-          onClick={handleBuyAndSellOnClick}
-          tooltipRender={(contents: React.ReactElement) =>
-            generateTooltip('buyButton', contents)
-          }
-        />
-        ///: END:ONLY_INCLUDE_IF
-      }
-
-      <IconButton
-        className={`${classPrefix}-overview__button`}
-        iconButtonClassName={iconButtonClassName}
-        disabled={
-          !isSwapsChain || !isSigningEnabled || !isExternalServicesEnabled
-        }
-        Icon={
-          <Icon
-            name={IconName.SwapHorizontal}
-            color={IconColor.iconDefault}
-            size={IconSize.Sm}
-          />
-        }
-        onClick={handleSwapOnClick}
-        label={t('swap')}
-        data-testid="token-overview-button-swap"
-        tooltipRender={(contents: React.ReactElement) =>
-          generateTooltip('swapButton', contents)
-        }
-      />
-      {
-        ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
-        <IconButton
-          className={`${classPrefix}-overview__button`}
-          iconButtonClassName={iconButtonClassName}
-          disabled={
-            !isBridgeChain ||
-            !isSigningEnabled ||
-            isNonEvmAccountWithoutExternalServices
-          }
-          data-testid={`${classPrefix}-overview-bridge`}
-          Icon={
-            <Icon
-              name={IconName.Bridge}
-              color={IconColor.iconDefault}
-              size={IconSize.Sm}
-            />
-          }
-          label={t('bridge')}
-          onClick={() => handleBridgeOnClick(false)}
-          tooltipRender={(contents: React.ReactElement) =>
-            generateTooltip('bridgeButton', contents)
-          }
-        />
-        ///: END:ONLY_INCLUDE_IF
-      }
-      <IconButton
-        className={`${classPrefix}-overview__button`}
-        iconButtonClassName={iconButtonClassName}
-        data-testid={`${classPrefix}-overview-send`}
-        Icon={
-          <Icon
-            name={IconName.Arrow2UpRight}
-            color={IconColor.iconDefault}
-            size={IconSize.Sm}
-          />
-        }
-        disabled={!isSigningEnabled || isNonEvmAccountWithoutExternalServices}
-        label={t('send')}
-        onClick={handleSendOnClick}
-        tooltipRender={(contents: React.ReactElement) =>
-          generateTooltip('sendButton', contents)
-        }
-      />
-      {
-        <>
-          {showReceiveModal && (
-            <ReceiveModal
-              address={selectedAddress}
-              onClose={() => setShowReceiveModal(false)}
-            />
-          )}
+        generateTooltip(
+          'buyButton',
           <IconButton
             className={`${classPrefix}-overview__button`}
-            iconButtonClassName={iconButtonClassName}
-            data-testid={`${classPrefix}-overview-receive`}
             Icon={
               <Icon
-                name={IconName.ScanBarcode}
+                name={IconName.PlusAndMinus}
                 color={IconColor.iconDefault}
                 size={IconSize.Sm}
               />
             }
-            label={t('receive')}
-            onClick={() => {
-              trace({ name: TraceName.ReceiveModal });
-              trackEvent({
-                event: MetaMetricsEventName.NavReceiveButtonClicked,
-                category: MetaMetricsEventCategory.Navigation,
-                properties: {
-                  text: 'Receive',
-                  location: trackingLocation,
-                  chain_id: chainId,
-                },
-              });
-              setShowReceiveModal(true);
-            }}
-          />
-        </>
+            disabled={!isBuyableChain}
+            data-testid={`${classPrefix}-overview-buy`}
+            label={t('buyAndSell')}
+            onClick={handleBuyAndSellOnClick}
+            width={BlockSize.Full}
+          />,
+        )
+        ///: END:ONLY_INCLUDE_IF
       }
+
+      {generateTooltip(
+        'swapButton',
+        <IconButton
+          className={`${classPrefix}-overview__button`}
+          disabled={
+            !isSwapsChain || !isSigningEnabled || !isExternalServicesEnabled
+          }
+          Icon={
+            <Icon
+              name={IconName.SwapHorizontal}
+              color={IconColor.iconDefault}
+              size={IconSize.Sm}
+            />
+          }
+          onClick={handleSwapOnClick}
+          label={t('swap')}
+          data-testid="token-overview-button-swap"
+          width={BlockSize.Full}
+        />,
+      )}
+
+      {
+        ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
+        generateTooltip(
+          'bridgeButton',
+          <IconButton
+            className={`${classPrefix}-overview__button`}
+            disabled={
+              !isBridgeChain ||
+              !isSigningEnabled ||
+              isNonEvmAccountWithoutExternalServices
+            }
+            data-testid={`${classPrefix}-overview-bridge`}
+            Icon={
+              <Icon
+                name={IconName.Bridge}
+                color={IconColor.iconDefault}
+                size={IconSize.Sm}
+              />
+            }
+            label={t('bridge')}
+            onClick={() => handleBridgeOnClick(false)}
+            width={BlockSize.Full}
+          />,
+        )
+        ///: END:ONLY_INCLUDE_IF
+      }
+
+      {generateTooltip(
+        'sendButton',
+        <IconButton
+          className={`${classPrefix}-overview__button`}
+          data-testid={`${classPrefix}-overview-send`}
+          Icon={
+            <Icon
+              name={IconName.Arrow2UpRight}
+              color={IconColor.iconDefault}
+              size={IconSize.Sm}
+            />
+          }
+          disabled={!isSigningEnabled || isNonEvmAccountWithoutExternalServices}
+          label={t('send')}
+          onClick={handleSendOnClick}
+          width={BlockSize.Full}
+        />,
+      )}
     </Box>
   );
 };
