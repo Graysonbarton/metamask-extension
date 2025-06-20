@@ -173,7 +173,7 @@ describe('Settings Search Utils', () => {
     it('returns "Backup And Sync" section count', () => {
       expect(
         getNumberOfSettingRoutesInTab(t, t('backupAndSync')),
-      ).toStrictEqual(2);
+      ).toStrictEqual(3);
     });
 
     it('returns "Contact" section count', () => {
@@ -183,7 +183,7 @@ describe('Settings Search Utils', () => {
     it('returns "Security & privacy" section count', () => {
       expect(
         getNumberOfSettingRoutesInTab(t, t('securityAndPrivacy')),
-      ).toStrictEqual(20);
+      ).toStrictEqual(21);
     });
 
     it('returns "Network" section count', () => {
@@ -192,7 +192,7 @@ describe('Settings Search Utils', () => {
 
     it('returns "Experimental" section count', () => {
       expect(getNumberOfSettingRoutesInTab(t, t('experimental'))).toStrictEqual(
-        4,
+        3,
       );
     });
 

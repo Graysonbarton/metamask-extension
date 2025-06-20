@@ -561,21 +561,6 @@ describe('preferences controller', () => {
     });
   });
 
-  describe('setBitcoinSupportEnabled', () => {
-    const { controller } = setupController({});
-    it('has the default value as false', () => {
-      expect(controller.state.bitcoinSupportEnabled).toStrictEqual(false);
-    });
-
-    it('sets the bitcoinSupportEnabled property in state to true and then false', () => {
-      controller.setBitcoinSupportEnabled(true);
-      expect(controller.state.bitcoinSupportEnabled).toStrictEqual(true);
-
-      controller.setBitcoinSupportEnabled(false);
-      expect(controller.state.bitcoinSupportEnabled).toStrictEqual(false);
-    });
-  });
-
   describe('globalThis.setPreference', () => {
     it('setFeatureFlags to true', () => {
       const { controller } = setupController({});
@@ -640,21 +625,6 @@ describe('preferences controller', () => {
     });
   });
 
-  describe('bitcoinTestnetSupportEnabled', () => {
-    it('defaults bitcoinTestnetSupportEnabled to false', () => {
-      const { controller } = setupController({});
-      expect(controller.state.bitcoinTestnetSupportEnabled).toStrictEqual(
-        false,
-      );
-    });
-
-    it('setBitcoinTestnetSupportEnabled to true', () => {
-      const { controller } = setupController({});
-      controller.setBitcoinTestnetSupportEnabled(true);
-      expect(controller.state.bitcoinTestnetSupportEnabled).toStrictEqual(true);
-    });
-  });
-
   describe('knownMethodData', () => {
     it('defaults knownMethodData', () => {
       const { controller } = setupController({});
@@ -699,12 +669,13 @@ describe('preferences controller', () => {
         useNativeCurrencyAsPrimaryCurrency: true,
         hideZeroBalanceTokens: false,
         petnamesEnabled: true,
-        shouldShowAggregatedBalancePopover: true,
+        skipDeepLinkInterstitial: false,
         dismissSmartAccountSuggestionEnabled: false,
         featureNotificationsEnabled: false,
         showConfirmationAdvancedDetails: false,
         showMultiRpcModal: false,
         showNativeTokenAsMainBalance: false,
+        smartAccountOptIn: true,
         tokenSortConfig: {
           key: 'tokenFiatAmount',
           order: 'dsc',
@@ -727,13 +698,14 @@ describe('preferences controller', () => {
         useNativeCurrencyAsPrimaryCurrency: true,
         hideZeroBalanceTokens: false,
         petnamesEnabled: true,
+        skipDeepLinkInterstitial: false,
         privacyMode: false,
-        shouldShowAggregatedBalancePopover: true,
         dismissSmartAccountSuggestionEnabled: false,
         featureNotificationsEnabled: false,
         showConfirmationAdvancedDetails: true,
         showMultiRpcModal: false,
         showNativeTokenAsMainBalance: false,
+        smartAccountOptIn: true,
         tokenSortConfig: {
           key: 'tokenFiatAmount',
           order: 'dsc',

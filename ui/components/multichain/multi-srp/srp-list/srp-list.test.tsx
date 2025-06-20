@@ -6,6 +6,10 @@ import { KeyringTypes } from '@metamask/keyring-controller';
 import { renderWithProvider } from '../../../../../test/jest/rendering';
 import mockState from '../../../../../test/data/mock-state.json';
 import { InternalAccountWithBalance } from '../../../../selectors';
+import { shortenAddress } from '../../../../helpers/utils/util';
+// eslint-disable-next-line import/no-restricted-paths
+import { normalizeSafeAddress } from '../../../../../app/scripts/lib/multichain/address';
+import { FirstTimeFlowType } from '../../../../../shared/constants/onboarding';
 import { SrpList } from './srp-list';
 
 const mockTotalFiatBalance = '100';
@@ -36,6 +40,8 @@ const render = () => {
     metamask: {
       ...mockState.metamask,
       keyrings: [...mockState.metamask.keyrings, mockSecondHdKeyring],
+      firstTimeFlowType: FirstTimeFlowType.create,
+      seedPhraseBackedUp: false,
     },
   });
 
@@ -66,6 +72,30 @@ describe('SrpList', () => {
     const keyring = getByTestId(`hd-keyring-${firstKeyringId}`);
     fireEvent.click(keyring);
 
-    expect(mocks.onActionComplete).toHaveBeenCalledWith(firstKeyringId);
+    expect(mocks.onActionComplete).toHaveBeenCalledWith(firstKeyringId, true);
+  });
+
+  it('displays the correct accounts for a keyring and ensures no duplicates', () => {
+    const { getByText, getAllByText } = render();
+    const firstKeyringAccounts = mockState.metamask.keyrings[0].accounts;
+    const account1Address = firstKeyringAccounts[0];
+    const account2Address = firstKeyringAccounts[1];
+
+    const showAccountsButton = getByText('Show 2 accounts');
+    fireEvent.click(showAccountsButton);
+
+    const shortenedAccount1 = shortenAddress(
+      normalizeSafeAddress(account1Address),
+    );
+    const shortenedAccount2 = shortenAddress(
+      normalizeSafeAddress(account2Address),
+    );
+
+    expect(getByText(shortenedAccount1)).toBeInTheDocument();
+    expect(getByText(shortenedAccount2)).toBeInTheDocument();
+
+    // Ensure no duplicates by checking the count of each shortened address.
+    expect(getAllByText(shortenedAccount1).length).toBe(1);
+    expect(getAllByText(shortenedAccount2).length).toBe(1);
   });
 });
