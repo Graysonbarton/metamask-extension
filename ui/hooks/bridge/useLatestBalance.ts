@@ -19,6 +19,8 @@ import {
   getMultichainCurrentChainId,
 } from '../../selectors/multichain';
 import { MULTICHAIN_NATIVE_CURRENCY_TO_CAIP19 } from '../../../shared/constants/multichain/assets';
+import { endTrace, trace, TraceName } from '../../../shared/lib/trace';
+import { BridgeQueryParams } from '../../../shared/lib/deep-links/routes/swap';
 
 /**
  * Custom hook to fetch and format the latest balance of a given token or native asset.
@@ -40,7 +42,7 @@ const useLatestBalance = (
 
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const tokenAddressFromUrl = useMemo(
-    () => searchParams.get('token'),
+    () => searchParams.get(BridgeQueryParams.FROM),
     [searchParams],
   );
 
@@ -69,34 +71,38 @@ const useLatestBalance = (
       return undefined;
     }
 
-    const { chainId } = token;
+    const { chainId, address } = token;
     // No need to fetch the balance for non-EVM tokens
     if (isSolanaChainId(chainId)) {
       return undefined;
     }
 
-    if (
-      token.address &&
-      formatChainIdToCaip(currentChainId) === formatChainIdToCaip(chainId)
-    ) {
-      return (
+    const caipCurrentChainId = formatChainIdToCaip(currentChainId);
+    if (caipCurrentChainId === formatChainIdToCaip(chainId)) {
+      trace({
+        name: TraceName.BridgeBalancesUpdated,
+        data: {
+          srcChainId: caipCurrentChainId,
+          isNative: isNativeAddress(address),
+        },
+        startTime: Date.now(),
+      });
+      const evmBalance = (
         await calcLatestSrcBalance(
           global.ethereumProvider,
           selectedAddress,
-          token.address,
+          address,
           formatChainIdToHex(chainId),
         )
       )?.toString();
+      endTrace({
+        name: TraceName.BridgeBalancesUpdated,
+      });
+      return evmBalance;
     }
 
     return undefined;
-  }, [
-    currentChainId,
-    token,
-    selectedAddress,
-    tokenAddressFromUrl,
-    shouldUpdateBalance,
-  ]);
+  }, [currentChainId, token, selectedAddress, shouldUpdateBalance]);
 
   const nonEvmBalance = useMemo(() => {
     if (!shouldUpdateBalance() || !token) {
@@ -109,7 +115,7 @@ const useLatestBalance = (
     if (isSolanaChainId(chainId) && decimals) {
       const caipAssetType = isNativeAddress(address)
         ? MULTICHAIN_NATIVE_CURRENCY_TO_CAIP19.SOL
-        : token.assetId ?? token.address;
+        : (token.assetId ?? token.address);
       return Numeric.from(
         nonEvmBalances?.[caipAssetType]?.amount ?? token?.string,
         10,

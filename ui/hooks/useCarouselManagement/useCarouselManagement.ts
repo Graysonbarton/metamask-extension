@@ -1,23 +1,28 @@
 import { isEqual } from 'lodash';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import log from 'loglevel';
+import { BigNumber } from 'bignumber.js';
+import { Platform } from '@metamask/profile-sync-controller/sdk';
 import { isSolanaAddress } from '../../../shared/lib/multichain/accounts';
 import type { CarouselSlide } from '../../../shared/constants/app-state';
-import { updateSlides } from '../../store/actions';
+import {
+  getUserProfileMetaMetrics as getUserProfileMetaMetricsAction,
+  updateSlides,
+} from '../../store/actions';
 import {
   getRemoteFeatureFlags,
   getSelectedAccountCachedBalance,
   getSelectedInternalAccount,
+  getShowDownloadMobileAppSlide,
   getSlides,
+  getUseExternalServices,
 } from '../../selectors';
 import { getIsRemoteModeEnabled } from '../../selectors/remote-mode';
 import {
   FUND_SLIDE,
-  ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
   BRIDGE_SLIDE,
-  ///: END:ONLY_INCLUDE_IF
   CARD_SLIDE,
   CASH_SLIDE,
   REMOTE_MODE_SLIDE,
@@ -28,9 +33,11 @@ import {
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
   SWEEPSTAKES_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
+  DOWNLOAD_MOBILE_APP_SLIDE,
 } from './constants';
 import { fetchCarouselSlidesFromContentful } from './fetchCarouselSlidesFromContentful';
 
@@ -68,8 +75,12 @@ export const useCarouselManagement = ({
   const totalBalance = useSelector(getSelectedAccountCachedBalance);
   const isRemoteModeEnabled = useSelector(getIsRemoteModeEnabled);
   const selectedAccount = useSelector(getSelectedInternalAccount);
-
-  const hasZeroBalance = totalBalance === ZERO_BALANCE;
+  const useExternalServices = useSelector(getUseExternalServices);
+  const showDownloadMobileAppSlide = useSelector(getShowDownloadMobileAppSlide);
+  const prevSlidesRef = useRef<CarouselSlide[]>();
+  const hasZeroBalance = new BigNumber(totalBalance ?? ZERO_BALANCE).eq(
+    ZERO_BALANCE,
+  );
 
   useEffect(() => {
     const defaultSlides: CarouselSlide[] = [];
@@ -84,20 +95,20 @@ export const useCarouselManagement = ({
       undismissable: hasZeroBalance,
     };
 
-    ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
     if (!isSolanaAddress(selectedAccount.address)) {
       defaultSlides.push(SMART_ACCOUNT_UPGRADE_SLIDE);
     }
     defaultSlides.push(BRIDGE_SLIDE);
-    ///: END:ONLY_INCLUDE_IF
     defaultSlides.push(CARD_SLIDE);
     defaultSlides.push(CASH_SLIDE);
     defaultSlides.push(MULTI_SRP_SLIDE);
     defaultSlides.push(BACKUPANDSYNC_SLIDE);
+    if (!useExternalServices) {
+      defaultSlides.push(BASIC_FUNCTIONALITY_SLIDE);
+    }
     ///: BEGIN:ONLY_INCLUDE_IF(solana)
     defaultSlides.push(SOLANA_SLIDE);
     ///: END:ONLY_INCLUDE_IF
-
     defaultSlides.splice(hasZeroBalance ? 0 : 2, 0, fundSlide);
 
     if (isRemoteModeEnabled) {
@@ -135,38 +146,73 @@ export const useCarouselManagement = ({
       const contentfulEnabled =
         remoteFeatureFlags?.contentfulCarouselEnabled ?? false;
 
+      if (useExternalServices && showDownloadMobileAppSlide) {
+        const userProfileMetaMetrics = await getUserProfileMetaMetricsAction();
+        if (userProfileMetaMetrics) {
+          const isUserAvailableOnMobile = userProfileMetaMetrics.lineage.some(
+            (lineage) => lineage.agent === Platform.MOBILE,
+          );
+
+          if (!isUserAvailableOnMobile) {
+            defaultSlides.unshift(DOWNLOAD_MOBILE_APP_SLIDE);
+          }
+        }
+      }
+
       if (contentfulEnabled) {
         try {
-          const contentfulSlides = await fetchCarouselSlidesFromContentful();
-          const checkedContentfulSlides = contentfulSlides
-            .map((slide) => {
-              const existing = slides.find(
-                (s: CarouselSlide) => s.id === slide.id,
+          const { prioritySlides, regularSlides } =
+            await fetchCarouselSlidesFromContentful();
+          const normalizeContentfulSlides = (slidesToCheck: CarouselSlide[]) =>
+            slidesToCheck
+              .map((slide) => {
+                const existing = slides.find(
+                  (s: CarouselSlide) => s.id === slide.id,
+                );
+                return {
+                  ...slide,
+                  dismissed: existing?.dismissed ?? false,
+                  undismissable:
+                    slide.undismissable || existing?.undismissable || false,
+                };
+              })
+              .filter((slide) =>
+                isActive(slide, testDate ? new Date(testDate) : new Date()),
               );
-              return {
-                ...slide,
-                dismissed: existing?.dismissed ?? false,
-              };
-            })
-            .filter((slide) =>
-              isActive(slide, testDate ? new Date(testDate) : new Date()),
-            );
-          const mergedSlides = [...defaultSlides, ...checkedContentfulSlides];
-          if (!isEqual(slides, mergedSlides)) {
+          const activePrioritySlides =
+            normalizeContentfulSlides(prioritySlides);
+          const activeRegularSlides = normalizeContentfulSlides(regularSlides);
+
+          const mergedSlides = [
+            ...activePrioritySlides,
+            ...defaultSlides,
+            ...activeRegularSlides,
+          ];
+
+          if (!isEqual(prevSlidesRef.current, mergedSlides)) {
             dispatch(updateSlides(mergedSlides));
+            prevSlidesRef.current = mergedSlides;
           }
         } catch (err) {
           log.warn('Failed to fetch Contentful slides:', err);
-          if (!isEqual(slides, defaultSlides)) {
+          if (!isEqual(prevSlidesRef.current, defaultSlides)) {
             dispatch(updateSlides(defaultSlides));
+            prevSlidesRef.current = defaultSlides;
           }
         }
-      } else if (!isEqual(slides, defaultSlides)) {
+      } else if (!isEqual(prevSlidesRef.current, defaultSlides)) {
         dispatch(updateSlides(defaultSlides));
+        prevSlidesRef.current = defaultSlides;
       }
     };
 
-    maybeFetchContentful();
+    (async () => {
+      try {
+        await maybeFetchContentful();
+      } catch (err) {
+        log.warn('Failed to load carousel slides:', err);
+      }
+    })();
   }, [
     dispatch,
     hasZeroBalance,
@@ -176,6 +222,8 @@ export const useCarouselManagement = ({
     inTest,
     slides,
     selectedAccount.address,
+    useExternalServices,
+    showDownloadMobileAppSlide,
   ]);
 
   return { slides };

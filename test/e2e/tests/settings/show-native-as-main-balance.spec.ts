@@ -67,8 +67,7 @@ describe('Settings: Show native token as main balance', function () {
         await advancedSettingsPage.toggleShowConversionOnTestnets();
         await settingsPage.closeSettingsPage();
 
-        // close popover
-        await homePage.closePopover();
+        // assert amount displayed
         const assetListPage = new AssetListPage(driver);
         await assetListPage.check_tokenFiatAmountIsDisplayed('$42,500.00');
       },
@@ -99,17 +98,11 @@ describe('Settings: Show native token as main balance', function () {
         await advancedSettingsPage.toggleShowConversionOnTestnets();
         await settingsPage.closeSettingsPage();
 
-        // close popover for the first time
-        await homePage.closePopover();
-
         // go to setting and back to home page and make sure popover is not shown again
         await homePage.headerNavbar.openSettingsPage();
         await settingsPage.check_pageIsLoaded();
         await settingsPage.closeSettingsPage();
-
-        // assert popover does not exist
         await homePage.check_pageIsLoaded();
-        await homePage.check_popoverIsDisplayed(false);
       },
     );
   });
@@ -141,10 +134,16 @@ describe('Settings: Show native token as main balance', function () {
 
         const events = await getEventPayloads(driver, mockedEndpoints);
         expect(events[0].properties).toMatchObject({
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           show_native_token_as_main_balance: false,
           category: 'Settings',
           locale: 'en',
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           chain_id: '0x539',
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           environment_type: 'fullscreen',
         });
       },
@@ -183,10 +182,16 @@ describe('Settings: Show native token as main balance', function () {
 
         const events = await getEventPayloads(driver, mockedEndpoints);
         expect(events[0].properties).toMatchObject({
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           show_native_token_as_main_balance: true,
           category: 'Settings',
           locale: 'en',
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           chain_id: '0x539',
+          // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           environment_type: 'fullscreen',
         });
       },

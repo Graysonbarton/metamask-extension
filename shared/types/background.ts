@@ -11,6 +11,7 @@ import type {
   MultichainBalancesControllerState,
   MultichainAssetsRatesControllerState,
   MultichainAssetsControllerState,
+  DeFiPositionsControllerState,
 } from '@metamask/assets-controllers';
 import type { MultichainTransactionsControllerState } from '@metamask/multichain-transactions-controller';
 import type { MultichainNetworkControllerState } from '@metamask/multichain-network-controller';
@@ -81,7 +82,7 @@ export type ControllerStatePropertiesEnumerated = {
   web3ShimUsageOrigins?: AlertControllerState['web3ShimUsageOrigins'];
   announcements: AnnouncementControllerState['announcements'];
   isSignedIn: AuthenticationController.AuthenticationControllerState['isSignedIn'];
-  sessionData?: AuthenticationController.AuthenticationControllerState['sessionData'];
+  srpSessionData?: AuthenticationController.AuthenticationControllerState['srpSessionData'];
   pinnedAccountList: AccountOrderControllerState['pinnedAccountList'];
   hiddenAccountList: AccountOrderControllerState['hiddenAccountList'];
   currentAppVersion: AppMetadataControllerState['currentAppVersion'];
@@ -107,6 +108,7 @@ export type ControllerStatePropertiesEnumerated = {
   showPermissionsTour: AppStateControllerState['showPermissionsTour'];
   showNetworkBanner: AppStateControllerState['showNetworkBanner'];
   showAccountBanner: AppStateControllerState['showAccountBanner'];
+  showDownloadMobileAppSlide: AppStateControllerState['showDownloadMobileAppSlide'];
   trezorModel: AppStateControllerState['trezorModel'];
   currentPopupId?: AppStateControllerState['currentPopupId'];
   onboardingDate: AppStateControllerState['onboardingDate'];
@@ -114,22 +116,27 @@ export type ControllerStatePropertiesEnumerated = {
   isRampCardClosed: AppStateControllerState['isRampCardClosed'];
   newPrivacyPolicyToastClickedOrClosed: AppStateControllerState['newPrivacyPolicyToastClickedOrClosed'];
   newPrivacyPolicyToastShownDate: AppStateControllerState['newPrivacyPolicyToastShownDate'];
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   hadAdvancedGasFeesSetPriorToMigration92_3: AppStateControllerState['hadAdvancedGasFeesSetPriorToMigration92_3'];
   qrHardware: AppStateControllerState['qrHardware'];
   nftsDropdownState: AppStateControllerState['nftsDropdownState'];
   surveyLinkLastClickedOrClosed: AppStateControllerState['surveyLinkLastClickedOrClosed'];
   signatureSecurityAlertResponses: AppStateControllerState['signatureSecurityAlertResponses'];
-  switchedNetworkDetails: AppStateControllerState['switchedNetworkDetails'];
-  switchedNetworkNeverShowMessage: AppStateControllerState['switchedNetworkNeverShowMessage'];
+  addressSecurityAlertResponses: AppStateControllerState['addressSecurityAlertResponses'];
   currentExtensionPopupId: AppStateControllerState['currentExtensionPopupId'];
   lastInteractedConfirmationInfo?: AppStateControllerState['lastInteractedConfirmationInfo'];
   termsOfUseLastAgreed?: AppStateControllerState['termsOfUseLastAgreed'];
   snapsInstallPrivacyWarningShown?: AppStateControllerState['snapsInstallPrivacyWarningShown'];
-  interactiveReplacementToken?: AppStateControllerState['interactiveReplacementToken'];
-  noteToTraderMessage?: AppStateControllerState['noteToTraderMessage'];
-  custodianDeepLink?: AppStateControllerState['custodianDeepLink'];
   slides: AppStateControllerState['slides'];
+  isUpdateAvailable: AppStateControllerState['isUpdateAvailable'];
+  updateModalLastDismissedAt: AppStateControllerState['updateModalLastDismissedAt'];
+  lastUpdatedAt: AppStateControllerState['lastUpdatedAt'];
   throttledOrigins: AppStateControllerState['throttledOrigins'];
+  enableEnforcedSimulations: AppStateControllerState['enableEnforcedSimulations'];
+  enableEnforcedSimulationsForTransactions: AppStateControllerState['enableEnforcedSimulationsForTransactions'];
+  enforcedSimulationsSlippage: AppStateControllerState['enforcedSimulationsSlippage'];
+  enforcedSimulationsSlippageForTransactions: AppStateControllerState['enforcedSimulationsSlippageForTransactions'];
   quoteRequest: BridgeControllerState['quoteRequest'];
   quotes: BridgeControllerState['quotes'];
   quotesInitialLoadTime: BridgeControllerState['quotesInitialLoadTime'];
@@ -137,14 +144,16 @@ export type ControllerStatePropertiesEnumerated = {
   quotesLoadingStatus: BridgeControllerState['quotesLoadingStatus'];
   quoteFetchError: BridgeControllerState['quoteFetchError'];
   quotesRefreshCount: BridgeControllerState['quotesRefreshCount'];
+  minimumBalanceForRentExemptionInLamports: BridgeControllerState['minimumBalanceForRentExemptionInLamports'];
   assetExchangeRates: BridgeControllerState['assetExchangeRates'];
   txHistory: BridgeStatusControllerState['txHistory'];
   events: CronjobControllerState['events'];
-  jobs: CronjobControllerState['jobs'];
   currentCurrency: CurrencyRateState['currentCurrency'];
   currencyRates: CurrencyRateState['currencyRates'];
   unapprovedDecryptMsgs: DecryptMessageControllerState['unapprovedDecryptMsgs'];
   unapprovedDecryptMsgCount: DecryptMessageControllerState['unapprovedDecryptMsgCount'];
+  allDeFiPositions: DeFiPositionsControllerState['allDeFiPositions'];
+  allDeFiPositionsCount: DeFiPositionsControllerState['allDeFiPositionsCount'];
   unapprovedEncryptionPublicKeyMsgs: EncryptionPublicKeyControllerState['unapprovedEncryptionPublicKeyMsgs'];
   unapprovedEncryptionPublicKeyMsgCount: EncryptionPublicKeyControllerState['unapprovedEncryptionPublicKeyMsgCount'];
   ensResolutionsByAddress: EnsControllerState['ensResolutionsByAddress'];
@@ -161,6 +170,7 @@ export type ControllerStatePropertiesEnumerated = {
   encryptionSalt?: KeyringControllerState['encryptionSalt'];
   logs: LoggingControllerState['logs'];
   eventsBeforeMetricsOptIn: MetaMetricsControllerState['eventsBeforeMetricsOptIn'];
+  tracesBeforeMetricsOptIn: MetaMetricsControllerState['tracesBeforeMetricsOptIn'];
   fragments: MetaMetricsControllerState['fragments'];
   metaMetricsId: MetaMetricsControllerState['metaMetricsId'];
   participateInMetaMetrics: MetaMetricsControllerState['participateInMetaMetrics'];
@@ -188,6 +198,7 @@ export type ControllerStatePropertiesEnumerated = {
   networksMetadata: NetworkState['networksMetadata'];
   selectedNetworkClientId: NetworkState['selectedNetworkClientId'];
   orderedNetworkList: NetworkOrderControllerState['orderedNetworkList'];
+  enabledNetworkMap: NetworkOrderControllerState['enabledNetworkMap'];
   allNftContracts: NftControllerState['allNftContracts'];
   allNfts: NftControllerState['allNfts'];
   ignoredNfts: NftControllerState['ignoredNfts'];
@@ -237,10 +248,6 @@ export type ControllerStatePropertiesEnumerated = {
   ///: BEGIN:ONLY_INCLUDE_IF(build-flask)
   watchEthereumAccountEnabled: PreferencesControllerState['watchEthereumAccountEnabled'];
   ///: END:ONLY_INCLUDE_IF
-  ///: BEGIN:ONLY_INCLUDE_IF(bitcoin)
-  bitcoinSupportEnabled: PreferencesControllerState['bitcoinSupportEnabled'];
-  bitcoinTestnetSupportEnabled: PreferencesControllerState['bitcoinTestnetSupportEnabled'];
-  ///: END:ONLY_INCLUDE_IF
   addSnapAccountEnabled?: PreferencesControllerState['addSnapAccountEnabled'];
   advancedGasFee: PreferencesControllerState['advancedGasFee'];
   knownMethodData: PreferencesControllerState['knownMethodData'];
@@ -289,6 +296,7 @@ export type ControllerStatePropertiesEnumerated = {
   lastFetchedBlockNumbers: TransactionControllerState['lastFetchedBlockNumbers'];
   methodData: TransactionControllerState['methodData'];
   transactions: TransactionControllerState['transactions'];
+  transactionBatches: TransactionControllerState['transactionBatches'];
   submitHistory: TransactionControllerState['submitHistory'];
   userOperations: UserOperationControllerState['userOperations'];
   isBackupAndSyncEnabled: UserStorageController.UserStorageControllerState['isBackupAndSyncEnabled'];
@@ -297,7 +305,8 @@ export type ControllerStatePropertiesEnumerated = {
   hasAccountSyncingSyncedAtLeastOnce: UserStorageController.UserStorageControllerState['hasAccountSyncingSyncedAtLeastOnce'];
   isAccountSyncingReadyToBeDispatched: UserStorageController.UserStorageControllerState['isAccountSyncingReadyToBeDispatched'];
   isAccountSyncingInProgress: UserStorageController.UserStorageControllerState['isAccountSyncingInProgress'];
-  hasNetworkSyncingSyncedAtLeastOnce?: UserStorageController.UserStorageControllerState['hasNetworkSyncingSyncedAtLeastOnce'];
+  isContactSyncingEnabled: UserStorageController.UserStorageControllerState['isContactSyncingEnabled'];
+  isContactSyncingInProgress: UserStorageController.UserStorageControllerState['isContactSyncingInProgress'];
 };
 
 type ControllerStateTypesMerged = AccountsControllerState &
@@ -315,6 +324,7 @@ type ControllerStateTypesMerged = AccountsControllerState &
   CronjobControllerState &
   CurrencyRateState &
   DecryptMessageControllerState &
+  DeFiPositionsControllerState &
   EncryptionPublicKeyControllerState &
   EnsControllerState & {
     // This is necessary due to the nested unions and intersections in the `GasFeeState` type definition
@@ -358,6 +368,8 @@ type ControllerStateTypesMerged = AccountsControllerState &
   UserOperationControllerState &
   UserStorageController.UserStorageControllerState;
 
+// TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export type IsEquivalent<A, B> = [A, B] extends [B, A] ? true : false;
 
 /**
@@ -366,11 +378,12 @@ export type IsEquivalent<A, B> = [A, B] extends [B, A] ? true : false;
  *
  * Evaluates to `never` if the type definition is wrong or incomplete.
  */
-export type FlattenedBackgroundStateProxy = IsEquivalent<
-  ControllerStatePropertiesEnumerated,
-  ControllerStateTypesMerged
-> extends true
-  ? { isInitialized: boolean } & {
-      [P in keyof ControllerStatePropertiesEnumerated]: ControllerStatePropertiesEnumerated[P];
-    }
-  : never;
+export type FlattenedBackgroundStateProxy =
+  IsEquivalent<
+    ControllerStatePropertiesEnumerated,
+    ControllerStateTypesMerged
+  > extends true
+    ? { isInitialized: boolean } & {
+        [P in keyof ControllerStatePropertiesEnumerated]: ControllerStatePropertiesEnumerated[P];
+      }
+    : never;

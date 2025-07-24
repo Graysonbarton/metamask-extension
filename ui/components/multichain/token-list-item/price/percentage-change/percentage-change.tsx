@@ -1,8 +1,16 @@
 import React from 'react';
 import { CaipAssetType } from '@metamask/utils';
-import { Box, Text } from '../../../../component-library';
 import {
+  Box,
+  Icon,
+  IconName,
+  IconSize,
+  Text,
+} from '../../../../component-library';
+import {
+  AlignItems,
   Display,
+  IconColor,
   TextColor,
   TextVariant,
 } from '../../../../../helpers/constants/design-system';
@@ -20,8 +28,7 @@ export const PercentageChange = ({
   value: number | null | undefined;
   address: `0x${string}` | CaipAssetType;
 }) => {
-  let color = TextColor.textDefault;
-
+  let color = TextColor.textAlternative;
   if (isValidAmount(value)) {
     if ((value as number) === 0) {
       color = TextColor.textDefault;
@@ -33,9 +40,16 @@ export const PercentageChange = ({
   }
 
   const formattedValue = formatValue(value, false);
-
+  const balanceIsNegative = isValidAmount(value) && (value as number) < 0;
   return (
-    <Box display={Display.Flex}>
+    <Box display={Display.Flex} alignItems={AlignItems.center} gap={1}>
+      <Icon
+        name={balanceIsNegative ? IconName.TriangleDown : IconName.TriangleUp}
+        size={IconSize.Xs}
+        color={
+          balanceIsNegative ? IconColor.errorDefault : IconColor.successDefault
+        }
+      />
       <Text
         variant={TextVariant.bodySmMedium}
         color={color}

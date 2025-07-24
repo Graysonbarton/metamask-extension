@@ -8,16 +8,16 @@ import NonEvmHomepage from '../../page-objects/pages/home/non-evm-homepage';
 import { withSolanaAccountSnap } from './common-solana';
 
 const commonSolanaAddress = 'GYP1hGem9HBkYKEWNUQUxEwfmu4hhjuujRgGnj5LrHna';
+
 // Investigate why this test is flaky https://consensyssoftware.atlassian.net/browse/MMQA-549
 // eslint-disable-next-line mocha/no-skipped-tests
-describe.skip('Send flow', function (this: Suite) {
+describe('Send flow', function (this: Suite) {
   it('with some field validation', async function () {
     this.timeout(120000);
     await withSolanaAccountSnap(
       {
         title: this.test?.fullTitle(),
         showNativeTokenAsMainBalance: true,
-        mockCalls: true,
         mockZeroBalance: true,
       },
       async (driver) => {
@@ -70,9 +70,7 @@ describe.skip('Send flow', function (this: Suite) {
       {
         title: this.test?.fullTitle(),
         showNativeTokenAsMainBalance: true,
-        mockCalls: true,
-        mockSendTransaction: true,
-        simulateTransaction: true,
+        mockGetTransactionSuccess: true,
       },
       async (driver) => {
         const homePage = new NonEvmHomepage(driver);
@@ -112,7 +110,9 @@ describe.skip('Send flow', function (this: Suite) {
           false,
           'Continue button is enabled when no address nor amount',
         );
+
         await sendSolanaPage.setAmount('10');
+
         const confirmSolanaPage = new ConfirmSolanaTxPage(driver);
         await sendSolanaPage.clickOnContinue();
         assert.equal(
@@ -149,8 +149,8 @@ describe.skip('Send flow', function (this: Suite) {
           true,
           'Network fee is not displayed and it should',
         );
-
         await confirmSolanaPage.clickOnSend();
+
         const sentTxPage = new SolanaTxresultPage(driver);
         assert.equal(
           await sentTxPage.check_TransactionStatusText('0.0886', true),
@@ -202,9 +202,7 @@ describe.skip('Send flow', function (this: Suite) {
       {
         title: this.test?.fullTitle(),
         showNativeTokenAsMainBalance: true,
-        mockCalls: true,
-        mockSendTransaction: true,
-        simulateTransaction: true,
+        mockGetTransactionSuccess: true,
       },
       async (driver) => {
         const homePage = new NonEvmHomepage(driver);
@@ -326,9 +324,7 @@ describe.skip('Send flow', function (this: Suite) {
       {
         title: this.test?.fullTitle(),
         showNativeTokenAsMainBalance: true,
-        mockCalls: true,
-        mockSendTransaction: false,
-        sendFailedTransaction: true,
+        mockGetTransactionFailed: true,
       },
       async (driver) => {
         const homePage = new NonEvmHomepage(driver);
@@ -379,35 +375,6 @@ describe.skip('Send flow', function (this: Suite) {
           await failedTxPage.isTransactionDetailDisplayed('Network fee'),
           true,
           'Network fee field not displayed and it should',
-        );
-      },
-    );
-  });
-
-  // eslint-disable-next-line mocha/no-skipped-tests
-  it('and transaction simulation fails', async function () {
-    this.timeout(120000); // there is a bug open for this big timeout https://consensyssoftware.atlassian.net/browse/SOL-90
-    await withSolanaAccountSnap(
-      {
-        title: this.test?.fullTitle(),
-        showNativeTokenAsMainBalance: true,
-        mockCalls: true,
-        simulateTransactionFailed: true,
-      },
-      async (driver) => {
-        const homePage = new NonEvmHomepage(driver);
-        await homePage.check_pageIsLoaded('50');
-        await homePage.clickOnSendButton();
-
-        const sendSolanaPage = new SendSolanaPage(driver);
-        await sendSolanaPage.check_pageIsLoaded('50 SOL');
-        await sendSolanaPage.setToAddress(commonSolanaAddress);
-        await sendSolanaPage.setAmount('0.1');
-        await sendSolanaPage.check_TxSimulationFailed();
-        assert.equal(
-          await sendSolanaPage.isContinueButtonEnabled(),
-          false,
-          'Continue button is enabled when transaction simulation fails',
         );
       },
     );

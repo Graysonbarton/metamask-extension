@@ -11,6 +11,11 @@ class SettingsPage {
   private readonly closeSettingsPageButton =
     '.settings-page__header__title-container__close-button';
 
+  private readonly contactsButton = {
+    text: 'Contacts',
+    css: '.tab-bar__tab__content__title',
+  };
+
   private readonly developerOptionsButton = {
     text: 'Developer Options',
     css: '.tab-bar__tab__content__title',
@@ -60,6 +65,8 @@ class SettingsPage {
     this.driver = driver;
   }
 
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_pageIsLoaded(): Promise<void> {
     console.log('Check settings page is loaded');
     await this.driver.waitForSelector(this.settingsPageTitle);
@@ -76,6 +83,11 @@ class SettingsPage {
   async fillSearchSettingsInput(text: string): Promise<void> {
     console.log(`Filling search settings input with ${text}`);
     await this.driver.fill(this.searchSettingsInput, text);
+  }
+
+  async goToContactsSettings(): Promise<void> {
+    console.log('Navigating to Contacts page settings');
+    await this.driver.clickElement(this.contactsButton);
   }
 
   async toggleShowFiatOnTestnets(): Promise<void> {
@@ -147,6 +159,8 @@ class SettingsPage {
     });
   }
 
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_noMatchingResultsFoundMessageIsDisplayed(): Promise<void> {
     console.log(
       'Checking no matching results found message is displayed on settings page',

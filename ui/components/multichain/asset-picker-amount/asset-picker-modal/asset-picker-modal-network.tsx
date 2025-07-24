@@ -28,9 +28,7 @@ import {
   AvatarNetworkSize,
   IconName,
 } from '../../../component-library';
-///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
 import { useI18nContext } from '../../../../hooks/useI18nContext';
-///: END:ONLY_INCLUDE_IF
 import { NetworkListItem } from '../../network-list-item';
 import { getNetworkConfigurationsByChainId } from '../../../../../shared/modules/selectors/networks';
 import { getCurrentCurrency } from '../../../../ducks/metamask/metamask';
@@ -39,10 +37,13 @@ import { useMultichainBalances } from '../../../../hooks/useMultichainBalances';
 import { NETWORK_TO_SHORT_NETWORK_NAME_MAP } from '../../../../../shared/constants/bridge';
 import { getImageForChainId } from '../../../../selectors/multichain';
 import { TEST_CHAINS } from '../../../../../shared/constants/network';
+import { getShowTestNetworks } from '../../../../selectors/selectors';
 
 // TODO use MultichainNetworkConfiguration type
 type NetworkOption =
-  | NetworkConfiguration
+  | (NetworkConfiguration & {
+      nickname?: string;
+    })
   | AddNetworkFields
   | (Omit<NetworkConfiguration, 'chainId'> & { chainId: CaipChainId });
 
@@ -88,13 +89,12 @@ export const AssetPickerModalNetwork = ({
   selectedChainIds?: string[];
   onMultiselectSubmit?: (selectedChainIds: string[]) => void;
 }) => {
-  ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
   const t = useI18nContext();
-  ///: END:ONLY_INCLUDE_IF
 
   const { balanceByChainId } = useMultichainBalances();
 
   const allNetworks = useSelector(getNetworkConfigurationsByChainId);
+  const showTestnets = useSelector(getShowTestNetworks);
   const currency = useSelector(getCurrentCurrency);
   // Use the networks prop if it is provided, otherwise use all available networks
   // Sort the networks by balance in descending order
@@ -287,6 +287,7 @@ export const AssetPickerModalNetwork = ({
                       />
                     ) : undefined
                   }
+                  chainId={chainId}
                   showEndAccessory={isMultiselectEnabled}
                   variant={TextVariant.bodyMdMedium}
                   endAccessory={
@@ -304,7 +305,7 @@ export const AssetPickerModalNetwork = ({
             })}
           </Box>
         </Box>
-        {process.env.REMOVE_GNS && testNetworks.length > 0 ? (
+        {showTestnets && testNetworks.length > 0 ? (
           <Box
             className="multichain-asset-picker__network-list"
             display={Display.Flex}

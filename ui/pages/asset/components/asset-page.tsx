@@ -1,6 +1,10 @@
 import { getNativeTokenAddress } from '@metamask/assets-controllers';
-import { EthMethod, SolMethod } from '@metamask/keyring-api';
-import { CaipAssetType, Hex, parseCaipAssetType } from '@metamask/utils';
+import { BtcMethod, EthMethod, SolMethod } from '@metamask/keyring-api';
+import {
+  type CaipAssetType,
+  type Hex,
+  parseCaipAssetType,
+} from '@metamask/utils';
 import { isEqual } from 'lodash';
 import React, { ReactNode, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
@@ -51,7 +55,6 @@ import {
   getSelectedAccountNativeTokenCachedBalanceByChainId,
   getSelectedInternalAccount,
   getShowFiatInTestnets,
-  getSwapsDefaultToken,
 } from '../../../selectors';
 import {
   getImageForChainId,
@@ -60,8 +63,12 @@ import {
   getMultichainNetworkConfigurationsByChainId,
   getMultichainShouldShowFiat,
 } from '../../../selectors/multichain';
-import { TokenWithFiatAmount } from '../../../components/app/assets/types';
+import {
+  TokenFiatDisplayInfo,
+  type TokenWithFiatAmount,
+} from '../../../components/app/assets/types';
 import { endTrace, TraceName } from '../../../../shared/lib/trace';
+import { useSafeChains } from '../../settings/networks-tab/networks-form/use-safe-chains';
 import { Asset } from '../types/asset';
 import { useCurrentPrice } from '../hooks/useCurrentPrice';
 import { getMultichainNativeAssetType } from '../../../selectors/assets';
@@ -93,11 +100,6 @@ const AssetPage = ({
 
   const isNative = type === AssetType.native;
 
-  // These need to be specific to the asset and not the current chain
-  const defaultSwapsToken = useSelector(
-    (state) => getSwapsDefaultToken(state, chainId),
-    isEqual,
-  );
   const isSwapsChain = useSelector((state) => getIsSwapsChain(state, chainId));
   const isBridgeChain = useSelector((state) =>
     getIsBridgeChain(state, chainId),
@@ -107,7 +109,8 @@ const AssetPage = ({
   const isSigningEnabled =
     account.methods.includes(EthMethod.SignTransaction) ||
     account.methods.includes(EthMethod.SignUserOperation) ||
-    account.methods.includes(SolMethod.SignTransaction);
+    account.methods.includes(SolMethod.SignTransaction) ||
+    account.methods.includes(BtcMethod.SendBitcoin);
 
   const isTestnet = useMultichainSelector(getMultichainIsTestnet);
   const shouldShowFiat = useMultichainSelector(getMultichainShouldShowFiat);
@@ -138,22 +141,38 @@ const AssetPage = ({
         default:
           return false;
       }
-    });
+    }) ?? {
+    // TODO: remve the fallback case where the mutichainTokenWithFiatAmount is undefined
+    // Root cause: There is a race condition where when switching from a non-EVM network
+    // to an EVM network, the mutichainTokenWithFiatAmount is undefined
+    // This is a workaround to avoid the error
+    // Look into the isEvm selector
+    // We might be switching network before account.
+    address: '',
+    chainId: '',
+    symbol: '',
+    title: '',
+    image: '',
+    tokenFiatAmount: 0,
+    string: '',
+    decimals: 0,
+    aggregators: [],
+    isNative: false,
+    primary: '',
+    secondary: 0,
+  };
 
   const isMetaMetricsEnabled = useSelector(getParticipateInMetaMetrics);
   const isMarketingEnabled = useSelector(getDataCollectionForMarketing);
   const metaMetricsId = useSelector(getMetaMetricsId);
 
-  const address = (() => {
-    if (type === AssetType.token) {
-      return isEvm ? toChecksumHexAddress(asset.address) : asset.address;
-    }
-    return isEvm ? getNativeTokenAddress(chainId) : nativeAssetType;
-  })();
-
-  if (!address) {
-    throw new Error('Could not determine address for asset');
-  }
+  const address =
+    (() => {
+      if (type === AssetType.token) {
+        return isEvm ? toChecksumHexAddress(asset.address) : asset.address;
+      }
+      return isEvm ? getNativeTokenAddress(chainId) : nativeAssetType;
+    })() ?? '';
 
   const shouldShowContractAddress = type === AssetType.token;
   const contractAddress = (() => {
@@ -231,9 +250,7 @@ const AssetPage = ({
       }
     : (mutichainTokenWithFiatAmount as TokenWithFiatAmount);
 
-  if (!tokenWithFiatAmount) {
-    throw new Error('Token with fiat amount not found');
-  }
+  const { safeChains } = useSafeChains();
 
   return (
     <Box
@@ -271,7 +288,7 @@ const AssetPage = ({
         >
           {name && symbol && name !== symbol
             ? `${name} (${symbol})`
-            : name ?? symbol}
+            : (name ?? symbol)}
         </Text>
       </Box>
       <AssetChart
@@ -279,8 +296,9 @@ const AssetPage = ({
         address={address}
         currentPrice={currentPrice}
         currency={currency}
+        asset={tokenWithFiatAmount as TokenFiatDisplayInfo}
       />
-      <Box marginTop={4}>
+      <Box marginTop={4} paddingLeft={4} paddingRight={4}>
         {type === AssetType.native ? (
           <CoinButtons
             {...{
@@ -291,7 +309,6 @@ const AssetPage = ({
               isSwapsChain,
               isBridgeChain,
               chainId,
-              defaultSwapsToken,
             }}
           />
         ) : (
@@ -316,6 +333,7 @@ const AssetPage = ({
             key={`${symbol}-${address}`}
             token={tokenWithFiatAmount}
             disableHover={true}
+            safeChains={safeChains}
           />
         )}
         <Box
@@ -427,7 +445,11 @@ const AssetPage = ({
               {t('yourActivity')}
             </Text>
             {type === AssetType.native ? (
-              <TransactionList hideNetworkFilter />
+              <TransactionList
+                tokenAddress={address}
+                hideNetworkFilter
+                overrideFilterForCurrentChain={true}
+              />
             ) : (
               <TransactionList tokenAddress={address} hideNetworkFilter />
             )}

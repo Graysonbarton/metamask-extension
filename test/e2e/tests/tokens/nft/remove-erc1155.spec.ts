@@ -9,6 +9,7 @@ import { loginWithBalanceValidation } from '../../../page-objects/flows/login.fl
 import SettingsPage from '../../../page-objects/pages/settings/settings-page';
 import HeaderNavbar from '../../../page-objects/pages/header-navbar';
 import PrivacySettings from '../../../page-objects/pages/settings/privacy-settings';
+import { CHAIN_IDS } from '../../../../../shared/constants/network';
 import { setupAutoDetectMocking } from './mocks';
 
 async function mockIPFSRequest(mockServer: MockttpServer) {
@@ -28,7 +29,14 @@ describe('Remove ERC1155 NFT', function () {
     await withFixtures(
       {
         dapp: true,
-        fixtures: new FixtureBuilder().withNftControllerERC1155().build(),
+        fixtures: new FixtureBuilder()
+          .withNftControllerERC1155()
+          .withEnabledNetworks({
+            eip155: {
+              [CHAIN_IDS.LOCALHOST]: true,
+            },
+          })
+          .build(),
         smartContract,
         title: this.test?.fullTitle(),
         testSpecificMock: mockIPFSRequest,
@@ -56,7 +64,14 @@ describe('Remove ERC1155 NFT', function () {
     const driverOptions = { mock: true };
     await withFixtures(
       {
-        fixtures: new FixtureBuilder().withNetworkControllerOnLinea().build(),
+        fixtures: new FixtureBuilder()
+          .withNetworkControllerOnMainnet()
+          .withEnabledNetworks({
+            eip155: {
+              [CHAIN_IDS.MAINNET]: true,
+            },
+          })
+          .build(),
         driverOptions,
         title: this.test?.fullTitle(),
         testSpecificMock: setupAutoDetectMocking,
@@ -81,6 +96,8 @@ describe('Remove ERC1155 NFT', function () {
         await homepage.check_expectedBalanceIsDisplayed();
         await homepage.goToNftTab();
         const nftListPage = new NftListPage(driver);
+        await driver.clickElement('[data-testid="sort-by-networks"]');
+        await driver.clickElement('[data-testid="modal-header-close-button"]');
         await nftListPage.check_nftNameIsDisplayed(
           'ENS: Ethereum Name Service',
         );

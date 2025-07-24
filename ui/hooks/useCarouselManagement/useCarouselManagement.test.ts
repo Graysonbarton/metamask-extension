@@ -1,11 +1,15 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { renderHook } from '@testing-library/react-hooks';
 import { waitFor } from '@testing-library/react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateSlides } from '../../store/actions';
+import { Platform } from '@metamask/profile-sync-controller/sdk';
+import { getUserProfileMetaMetrics, updateSlides } from '../../store/actions';
 import {
   getSelectedAccountCachedBalance,
   getSelectedInternalAccount,
   getSlides,
+  getUseExternalServices,
+  getShowDownloadMobileAppSlide,
 } from '../../selectors';
 import { getIsRemoteModeEnabled } from '../../selectors/remote-mode';
 import { CarouselSlide } from '../../../shared/constants/app-state';
@@ -28,11 +32,15 @@ import {
   BACKUPANDSYNC_SLIDE,
   SOLANA_SLIDE,
   SMART_ACCOUNT_UPGRADE_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
+  DOWNLOAD_MOBILE_APP_SLIDE,
 } from './constants';
 import { fetchCarouselSlidesFromContentful } from './fetchCarouselSlidesFromContentful';
 
 jest.mock('./fetchCarouselSlidesFromContentful');
-jest.mocked(fetchCarouselSlidesFromContentful).mockResolvedValue([]);
+jest
+  .mocked(fetchCarouselSlidesFromContentful)
+  .mockResolvedValue({ prioritySlides: [], regularSlides: [] });
 
 const SLIDES_ZERO_FUNDS_REMOTE_OFF_SWEEPSTAKES_OFF = [
   { ...FUND_SLIDE, undismissable: true },
@@ -44,6 +52,7 @@ const SLIDES_ZERO_FUNDS_REMOTE_OFF_SWEEPSTAKES_OFF = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -59,6 +68,7 @@ const SLIDES_POSITIVE_FUNDS_REMOTE_OFF_SWEEPSTAKES_OFF = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -75,6 +85,7 @@ const SLIDES_ZERO_FUNDS_REMOTE_ON_SWEEPSTAKES_OFF = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -91,6 +102,7 @@ const SLIDES_POSITIVE_FUNDS_REMOTE_ON_SWEEPSTAKES_OFF = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -107,6 +119,7 @@ const SLIDES_ZERO_FUNDS_REMOTE_OFF_SWEEPSTAKES_ON = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -123,6 +136,7 @@ const SLIDES_POSITIVE_FUNDS_REMOTE_OFF_SWEEPSTAKES_ON = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -140,6 +154,7 @@ const SLIDES_ZERO_FUNDS_REMOTE_ON_SWEEPSTAKES_ON = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -157,6 +172,7 @@ const SLIDES_POSITIVE_FUNDS_REMOTE_ON_SWEEPSTAKES_ON = [
   CASH_SLIDE,
   MULTI_SRP_SLIDE,
   BACKUPANDSYNC_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
@@ -196,12 +212,20 @@ jest.mock('react-redux', () => ({
 
 jest.mock('../../store/actions', () => ({
   updateSlides: jest.fn(),
+  getUserProfileMetaMetrics: jest.fn().mockResolvedValue({
+    lineage: [
+      {
+        agent: 'extension',
+      },
+    ],
+  }),
 }));
 
 jest.mock('../../selectors/selectors.js', () => ({
   ...jest.requireActual('../../selectors/selectors.js'),
   getSelectedAccountCachedBalance: jest.fn(),
   getSlides: jest.fn(),
+  getUseExternalServices: jest.fn(),
 }));
 
 jest.mock('../../selectors/remote-mode', () => ({
@@ -214,10 +238,12 @@ const mockUseDispatch = jest.mocked(useDispatch);
 
 const mockGetSlides = jest.fn();
 const mockGetSelectedAccountCachedBalance = jest.fn();
+const mockGetUseExternalServices = jest.fn();
 const mockGetSelectedInternalAccount = jest
   .fn()
   .mockImplementation(() => MOCK_ACCOUNT);
 const mockGetIsRemoteModeEnabled = jest.fn();
+const mockGetShowDownloadMobileAppSlide = jest.fn().mockReturnValue(true);
 
 describe('useCarouselManagement', () => {
   let validTestDate: string;
@@ -245,12 +271,19 @@ describe('useCarouselManagement', () => {
       if (selector === getIsRemoteModeEnabled) {
         return mockGetIsRemoteModeEnabled();
       }
+      if (selector === getUseExternalServices) {
+        return mockGetUseExternalServices();
+      }
+      if (selector === getShowDownloadMobileAppSlide) {
+        return mockGetShowDownloadMobileAppSlide();
+      }
       return undefined;
     });
     // Default values
     mockGetSlides.mockReturnValue([]);
     mockGetSelectedAccountCachedBalance.mockReturnValue(ZERO_BALANCE);
     mockGetIsRemoteModeEnabled.mockReturnValue(false);
+    mockGetUseExternalServices.mockReturnValue(false);
     // Reset mocks
     jest.clearAllMocks();
   });
@@ -295,6 +328,18 @@ describe('useCarouselManagement', () => {
       const updatedSlides = mockUpdateSlides.mock.calls[0][0];
 
       expect(updatedSlides[0].undismissable).toBe(true);
+    });
+
+    it('should mark fund slide as undismissable when using the hex 0x00 for zero balance', async () => {
+      mockGetSelectedAccountCachedBalance.mockReturnValue('0x00');
+      renderHook(() => useCarouselManagement({ testDate: validTestDate }));
+
+      await waitFor(() => expect(mockUpdateSlides).toHaveBeenCalled());
+      const updatedSlides: CarouselSlide[] = mockUpdateSlides.mock.calls[0][0];
+
+      const fundsSlide = updatedSlides.find((s) => s.id === FUND_SLIDE.id);
+      expect(fundsSlide).toBeDefined();
+      expect(fundsSlide?.undismissable).toBe(true);
     });
   });
 
@@ -366,6 +411,7 @@ describe('useCarouselManagement', () => {
     beforeEach(() => {
       mockGetSelectedAccountCachedBalance.mockReturnValue('0x1');
       mockGetIsRemoteModeEnabled.mockReturnValue(true);
+      mockGetUseExternalServices.mockReturnValue(false);
     });
 
     it('should have correct slide order', async () => {
@@ -514,10 +560,14 @@ describe('useCarouselManagement', () => {
   });
 
   describe('Smart account upgrade slide', () => {
-    it('should not be displayed if solana address is selected', () => {
+    beforeEach(() => {
+      mockGetUseExternalServices.mockReturnValue(false);
+    });
+    it('should not be displayed if solana address is selected', async () => {
       jest.spyOn(AccountUtils, 'isSolanaAddress').mockReturnValue(true);
       renderHook(() => useCarouselManagement({ testDate: validTestDate }));
 
+      await waitFor(() => expect(mockUpdateSlides).toHaveBeenCalled());
       const updatedSlides = mockUpdateSlides.mock.calls[0][0];
 
       expect(updatedSlides).toStrictEqual([
@@ -530,7 +580,87 @@ describe('useCarouselManagement', () => {
         CASH_SLIDE,
         MULTI_SRP_SLIDE,
         BACKUPANDSYNC_SLIDE,
+        BASIC_FUNCTIONALITY_SLIDE,
         SOLANA_SLIDE,
+      ]);
+    });
+  });
+
+  describe('Download mobile app slide', () => {
+    it('should display if user is not available on mobile', async () => {
+      mockGetUseExternalServices.mockReturnValue(true);
+
+      jest.mocked(getUserProfileMetaMetrics).mockResolvedValue({
+        lineage: [
+          {
+            agent: Platform.EXTENSION,
+            metametrics_id: '0xdeadbeef',
+            created_at: '2021-01-01',
+            updated_at: '2021-01-01',
+            counter: 1,
+          },
+        ],
+        created_at: '2025-07-16T10:03:57Z',
+        profile_id: '0deaba86-4b9d-4137-87d7-18bc5bf7708d',
+      });
+
+      renderHook(() => useCarouselManagement({ testDate: invalidTestDate }));
+
+      await waitFor(() => expect(mockUpdateSlides).toHaveBeenCalled());
+      const updatedSlides = mockUpdateSlides.mock.calls[0][0];
+
+      expect(updatedSlides).toStrictEqual([
+        DOWNLOAD_MOBILE_APP_SLIDE,
+        { ...FUND_SLIDE, undismissable: true },
+        SMART_ACCOUNT_UPGRADE_SLIDE,
+        ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
+        BRIDGE_SLIDE,
+        ///: END:ONLY_INCLUDE_IF
+        CARD_SLIDE,
+        CASH_SLIDE,
+        MULTI_SRP_SLIDE,
+        BACKUPANDSYNC_SLIDE,
+        ///: BEGIN:ONLY_INCLUDE_IF(solana)
+        SOLANA_SLIDE,
+        ///: END:ONLY_INCLUDE_IF
+      ]);
+    });
+
+    it('should not display if user is available on mobile', async () => {
+      mockGetUseExternalServices.mockReturnValue(true);
+
+      jest.mocked(getUserProfileMetaMetrics).mockResolvedValue({
+        lineage: [
+          {
+            agent: Platform.MOBILE,
+            metametrics_id: '0xdeadbeef',
+            created_at: '2021-01-01',
+            updated_at: '2021-01-01',
+            counter: 1,
+          },
+        ],
+        created_at: '2025-07-16T10:03:57Z',
+        profile_id: '0deaba86-4b9d-4137-87d7-18bc5bf7708d',
+      });
+
+      renderHook(() => useCarouselManagement({ testDate: invalidTestDate }));
+
+      await waitFor(() => expect(mockUpdateSlides).toHaveBeenCalled());
+      const updatedSlides = mockUpdateSlides.mock.calls[0][0];
+
+      expect(updatedSlides).toStrictEqual([
+        { ...FUND_SLIDE, undismissable: true },
+        SMART_ACCOUNT_UPGRADE_SLIDE,
+        ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
+        BRIDGE_SLIDE,
+        ///: END:ONLY_INCLUDE_IF
+        CARD_SLIDE,
+        CASH_SLIDE,
+        MULTI_SRP_SLIDE,
+        BACKUPANDSYNC_SLIDE,
+        ///: BEGIN:ONLY_INCLUDE_IF(solana)
+        SOLANA_SLIDE,
+        ///: END:ONLY_INCLUDE_IF
       ]);
     });
   });

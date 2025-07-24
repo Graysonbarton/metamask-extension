@@ -1,4 +1,5 @@
 import { strict as assert } from 'assert';
+import { Browser } from 'selenium-webdriver';
 import { Driver } from '../../webdriver/driver';
 
 class HeaderNavbar {
@@ -25,8 +26,6 @@ class HeaderNavbar {
 
   private readonly settingsButton = '[data-testid="global-menu-settings"]';
 
-  private readonly switchNetworkDropDown = '[data-testid="network-display"]';
-
   private readonly networkPicker = '.mm-picker-network';
 
   private readonly notificationsButton =
@@ -38,10 +37,20 @@ class HeaderNavbar {
   private readonly firstTimeTurnOnNotificationsButton =
     '[data-testid="turn-on-notifications-button"]';
 
+  private readonly globalNetworksMenu = '[data-testid="global-menu-networks"]';
+
   constructor(driver: Driver) {
     this.driver = driver;
   }
 
+  async openGlobalNetworksMenu(): Promise<void> {
+    console.log('Open global menu');
+    await this.driver.clickElement(this.threeDotMenuButton);
+    await this.driver.clickElement(this.globalNetworksMenu);
+  }
+
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_pageIsLoaded(): Promise<void> {
     try {
       await this.driver.waitForMultipleSelectors([
@@ -84,7 +93,14 @@ class HeaderNavbar {
 
   async openThreeDotMenu(): Promise<void> {
     console.log('Open account options menu');
-    await this.driver.clickElement(this.threeDotMenuButton);
+    await this.driver.waitForSelector(this.threeDotMenuButton, {
+      state: 'enabled',
+    });
+    if (process.env.SELENIUM_BROWSER === Browser.FIREFOX) {
+      await this.driver.clickElementUsingMouseMove(this.threeDotMenuButton);
+    } else {
+      this.driver.clickElement(this.threeDotMenuButton);
+    }
   }
 
   async openPermissionsPage(): Promise<void> {
@@ -105,11 +121,6 @@ class HeaderNavbar {
     await this.driver.clickElement(this.settingsButton);
   }
 
-  async clickSwitchNetworkDropDown(): Promise<void> {
-    console.log(`Click switch network menu`);
-    await this.driver.clickElement(this.switchNetworkDropDown);
-  }
-
   async enableNotifications(): Promise<void> {
     console.log('Enabling notifications for the first time');
     await this.openThreeDotMenu();
@@ -128,6 +139,8 @@ class HeaderNavbar {
     await this.driver.clickElement(this.notificationsButton);
   }
 
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_notificationCountInMenuOption(count: number): Promise<void> {
     await this.openThreeDotMenu();
     await this.driver.findElement({
@@ -136,13 +149,8 @@ class HeaderNavbar {
     });
   }
 
-  async check_currentSelectedNetwork(networkName: string): Promise<void> {
-    console.log(`Validate the Switch network to ${networkName}`);
-    await this.driver.waitForSelector(
-      `button[data-testid="network-display"][aria-label="Network Menu ${networkName}"]`,
-    );
-  }
-
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_ifNetworkPickerClickable(clickable: boolean): Promise<void> {
     console.log('Check whether the network picker is clickable or not');
     assert.equal(
@@ -156,6 +164,8 @@ class HeaderNavbar {
    *
    * @param expectedAddress - The expected address of the account.
    */
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_accountAddress(expectedAddress: string): Promise<void> {
     console.log(
       `Verify the displayed account address in header is: ${expectedAddress}`,
@@ -171,6 +181,8 @@ class HeaderNavbar {
    *
    * @param expectedLabel - The expected label of the account.
    */
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   async check_accountLabel(expectedLabel: string): Promise<void> {
     console.log(
       `Verify the displayed account label in header is: ${expectedLabel}`,

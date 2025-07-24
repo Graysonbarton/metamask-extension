@@ -131,6 +131,8 @@ type AssetPickerModalProps = {
 
 const MAX_UNOWNED_TOKENS_RENDERED = 30;
 
+// TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export function AssetPickerModal({
   header,
   isOpen,
@@ -158,18 +160,40 @@ export function AssetPickerModal({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-  const debouncedSetSearchQuery = debounce(setDebouncedSearchQuery, 200);
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value) => {
+      setDebouncedSearchQuery(value);
+    }, 200),
+    [],
+  );
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller and debounce on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      debouncedSetSearchQuery.cancel();
+    };
+  }, []);
+
   useEffect(() => {
     debouncedSetSearchQuery(searchQuery);
   }, [searchQuery, debouncedSetSearchQuery]);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const swapsBlockedTokens = useSelector(getSwapsBlockedTokens);
   const memoizedSwapsBlockedTokens = useMemo(() => {
     return new Set<string>(swapsBlockedTokens);
   }, [swapsBlockedTokens]);
 
-  const handleAssetChange = useCallback(onAssetChange, [onAssetChange]);
+  const handleAssetChange = useCallback(
+    (newAsset) => {
+      onAssetChange(newAsset);
+      setSearchQuery('');
+    },
+    [onAssetChange],
+  );
 
   const currentChainId = useSelector(getMultichainCurrentChainId);
   const allNetworks = useSelector(getMultichainNetworkConfigurationsByChainId);
@@ -518,6 +542,8 @@ export function AssetPickerModal({
             selectedNetwork.chainId as keyof typeof NETWORK_TO_NAME_MAP
           ]) ??
         selectedNetwork?.name ??
+        // @ts-expect-error TODO: fix typing
+        selectedNetwork?.nickname ??
         t('bridgeSelectNetwork')
       );
     }
@@ -601,6 +627,7 @@ export function AssetPickerModal({
             <AvatarToken
               borderRadius={BorderRadius.full}
               src={sendingAsset.image}
+              name={sendingAsset.symbol}
               size={AvatarTokenSize.Xs}
             />
             <Text variant={TextVariant.bodySm}>
@@ -653,16 +680,13 @@ export function AssetPickerModal({
                   onChange={(value) => {
                     // Cancel previous asset metadata fetch
                     abortControllerRef.current?.abort();
-                    setSearchQuery(value);
+                    setSearchQuery(() => value);
                   }}
                   autoFocus={autoFocus}
                 />
                 <AssetList
                   network={network}
-                  handleAssetChange={(selectedAsset) => {
-                    setSearchQuery('');
-                    handleAssetChange(selectedAsset);
-                  }}
+                  handleAssetChange={handleAssetChange}
                   asset={asset?.type === AssetType.NFT ? undefined : asset}
                   tokenList={displayedTokens}
                   isTokenDisabled={getIsDisabled}

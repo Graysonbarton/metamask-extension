@@ -1,3 +1,11 @@
+import { DOWNLOAD_MOBILE_APP_SLIDE_ID } from '../../../shared/constants/app';
+
+export const BASIC_FUNCTIONALITY_SLIDE = {
+  id: 'basic_functionality',
+  title: 'basicConfigurationBannerTitle',
+  description: 'enableIt',
+  image: './images/basic-functionality.svg',
+};
 export const REMOTE_MODE_SLIDE = {
   id: 'remoteMode',
   title: 'slideRemoteModeTitle',
@@ -38,14 +46,12 @@ export const FUND_SLIDE = {
   href: 'https://portfolio.metamask.io/buy/build-quote',
 };
 
-///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
 export const BRIDGE_SLIDE = {
   id: 'bridge',
   title: 'slideBridgeTitle',
   description: 'slideBridgeDescription',
   image: './images/slide-bridge-icon.svg',
 };
-///: END:ONLY_INCLUDE_IF
 
 export const CARD_SLIDE = {
   id: 'card',
@@ -68,6 +74,7 @@ export const MULTI_SRP_SLIDE = {
   title: 'slideMultiSrpTitle',
   description: 'slideMultiSrpDescription',
   image: './images/slide-multi-srp-icon.svg',
+  href: '/home.html#import-srp',
 };
 
 export const BACKUPANDSYNC_SLIDE = {
@@ -75,6 +82,13 @@ export const BACKUPANDSYNC_SLIDE = {
   title: 'backupAndSyncSlideTitle',
   description: 'backupAndSyncSlideDescription',
   image: './images/slide-backup-and-sync-icon.png',
+};
+
+export const DOWNLOAD_MOBILE_APP_SLIDE = {
+  id: DOWNLOAD_MOBILE_APP_SLIDE_ID,
+  title: 'slideDownloadMobileAppTitle',
+  description: 'slideDownloadMobileAppDescription',
+  image: './images/slide-metamask-icon.svg',
 };
 
 export const ZERO_BALANCE = '0x0';

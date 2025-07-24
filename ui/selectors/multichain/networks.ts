@@ -7,7 +7,7 @@ import {
 } from '@metamask/multichain-network-controller';
 import { type NetworkConfiguration as InternalNetworkConfiguration } from '@metamask/network-controller';
 import { BtcScope, SolScope } from '@metamask/keyring-api';
-import { type CaipChainId, type Hex } from '@metamask/utils';
+import { type CaipChainId, type Hex, parseCaipChainId } from '@metamask/utils';
 
 import {
   type ProviderConfigState,
@@ -20,6 +20,8 @@ import { createDeepEqualSelector } from '../../../shared/modules/selectors/util'
 import {
   getIsBitcoinSupportEnabled,
   getIsSolanaSupportEnabled,
+  getIsSolanaTestnetSupportEnabled,
+  getEnabledNetworks,
 } from '../selectors';
 import { getInternalAccounts } from '../accounts';
 
@@ -77,7 +79,11 @@ export const getIsNonEvmNetworksEnabled = createDeepEqualSelector(
     // they're used we can't guarantee that the scopes will be set
     // during the keyring migration execution.
     for (const { scopes } of internalAccounts) {
-      if (scopes?.includes(BtcScope.Mainnet)) {
+      if (
+        scopes?.includes(
+          BtcScope.Mainnet || BtcScope.Testnet || BtcScope.Signet,
+        )
+      ) {
         bitcoinEnabled = true;
       }
       if (scopes?.includes(SolScope.Mainnet)) {
@@ -97,9 +103,11 @@ export const getNonEvmMultichainNetworkConfigurationsByChainId =
     (state: MultichainNetworkConfigurationsByChainIdState) =>
       state.metamask.multichainNetworkConfigurationsByChainId,
     getIsNonEvmNetworksEnabled,
+    (state) => getIsSolanaTestnetSupportEnabled(state),
     (
       multichainNetworkConfigurationsByChainId,
       isNonEvmNetworksEnabled,
+      isSolanaTestnetSupportEnabled,
     ): Record<CaipChainId, InternalMultichainNetworkConfiguration> => {
       const filteredNonEvmNetworkConfigurationsByChainId: Record<
         CaipChainId,
@@ -123,15 +131,13 @@ export const getNonEvmMultichainNetworkConfigurationsByChainId =
           multichainNetworkConfigurationsByChainId[SolScope.Mainnet];
       }
 
-      ///: BEGIN:ONLY_INCLUDE_IF(build-flask)
-      if (solanaEnabled) {
+      if (solanaEnabled && isSolanaTestnetSupportEnabled) {
         // TODO: Uncomment this when we want to support testnet
         // filteredNonEvmNetworkConfigurationsByChainId[SolScope.Testnet] =
-        //   nonEvmNetworkConfigurationsByChainId[SolScope.Testnet];
+        //   multichainNetworkConfigurationsByChainId[SolScope.Testnet];
         filteredNonEvmNetworkConfigurationsByChainId[SolScope.Devnet] =
           multichainNetworkConfigurationsByChainId[SolScope.Devnet];
       }
-      ///: END:ONLY_INCLUDE_IF
 
       return filteredNonEvmNetworkConfigurationsByChainId;
     },
@@ -209,4 +215,54 @@ export const getNetworksWithActivity = (state: MultichainNetworkConfigState) =>
 export const getNetworksWithTransactionActivity = createDeepEqualSelector(
   getNetworksWithActivity,
   (networksWithActivity) => networksWithActivity,
+);
+
+export const getEnabledNetworksByNamespace = createDeepEqualSelector(
+  getEnabledNetworks,
+  getSelectedMultichainNetworkChainId,
+  (enabledNetworkMap, currentMultichainChainId) => {
+    const { namespace } = parseCaipChainId(currentMultichainChainId);
+    return enabledNetworkMap[namespace] ?? {};
+  },
+);
+
+export const getEnabledChainIds = createDeepEqualSelector(
+  getNetworkConfigurationsByChainId,
+  getEnabledNetworks,
+  getSelectedMultichainNetworkChainId,
+  (networkConfigurations, enabledNetworks, currentMultichainChainId) => {
+    const { namespace } = parseCaipChainId(currentMultichainChainId);
+
+    // Get enabled networks for the current namespace
+    const networksForNamespace = enabledNetworks[namespace] || {};
+
+    return Object.keys(networkConfigurations).filter(
+      (chainId) => networksForNamespace[chainId],
+    );
+  },
+);
+
+export const getEnabledNetworkClientIds = createDeepEqualSelector(
+  getNetworkConfigurationsByChainId,
+  getEnabledNetworks,
+  getSelectedMultichainNetworkChainId,
+  (networkConfigurations, enabledNetworks, currentMultichainChainId) => {
+    const { namespace } = parseCaipChainId(currentMultichainChainId);
+
+    // Get enabled networks for the current namespace
+    const networksForNamespace = enabledNetworks[namespace as string] || {};
+
+    return Object.entries(networkConfigurations).reduce(
+      (acc, [chainId, network]) => {
+        if (networksForNamespace[chainId]) {
+          acc.push(
+            network.rpcEndpoints[network.defaultRpcEndpointIndex]
+              .networkClientId,
+          );
+        }
+        return acc;
+      },
+      [] as string[],
+    );
+  },
 );

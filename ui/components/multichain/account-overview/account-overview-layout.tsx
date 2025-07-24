@@ -1,8 +1,7 @@
 import React, { useContext, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
-import { isEqual } from 'lodash';
-///: END:ONLY_INCLUDE_IF
+import { useHistory } from 'react-router-dom';
+
 import {
   showModal,
   removeSlide,
@@ -15,35 +14,36 @@ import { Carousel } from '..';
 import {
   getAppIsLoading,
   getSelectedAccount,
-  ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
-  getSwapsDefaultToken,
-  ///: END:ONLY_INCLUDE_IF
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   hasCreatedSolanaAccount,
   ///: END:ONLY_INCLUDE_IF
 } from '../../../selectors';
-///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
 import useBridging from '../../../hooks/bridge/useBridging';
-///: END:ONLY_INCLUDE_IF
 import { MetaMetricsContext } from '../../../contexts/metametrics';
 import {
   MetaMetricsEventName,
   MetaMetricsEventCategory,
 } from '../../../../shared/constants/metametrics';
 import type { CarouselSlide } from '../../../../shared/constants/app-state';
+import { SMART_ACCOUNT_UPDATE } from '../../../helpers/constants/routes';
 import { TURN_ON_BACKUP_AND_SYNC_MODAL_NAME } from '../../app/modals/identity';
 import {
   useCarouselManagement,
   BACKUPANDSYNC_SLIDE,
   SMART_ACCOUNT_UPGRADE_SLIDE,
+  BASIC_FUNCTIONALITY_SLIDE,
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   SOLANA_SLIDE,
   ///: END:ONLY_INCLUDE_IF
+  DOWNLOAD_MOBILE_APP_SLIDE,
 } from '../../../hooks/useCarouselManagement';
 ///: BEGIN:ONLY_INCLUDE_IF(solana)
 import { CreateSolanaAccountModal } from '../create-solana-account-modal';
 import { getLastSelectedSolanaAccount } from '../../../selectors/multichain';
 ///: END:ONLY_INCLUDE_IF
+import { getUseSmartAccount } from '../../../pages/confirmations/selectors/preferences';
+import { openBasicFunctionalityModal } from '../../../ducks/app/app';
+import DownloadMobileAppModal from '../../app/download-mobile-modal/download-mobile-modal';
 import {
   AccountOverviewTabsProps,
   AccountOverviewTabs,
@@ -61,7 +61,9 @@ export const AccountOverviewLayout = ({
   const isLoading = useSelector(getAppIsLoading);
   const trackEvent = useContext(MetaMetricsContext);
   const [hasRendered, setHasRendered] = useState(false);
+  const history = useHistory();
   const selectedAccount = useSelector(getSelectedAccount);
+  const smartAccountOptIn = useSelector(getUseSmartAccount);
 
   ///: BEGIN:ONLY_INCLUDE_IF(solana)
   const [showCreateSolanaAccountModal, setShowCreateSolanaAccountModal] =
@@ -70,26 +72,22 @@ export const AccountOverviewLayout = ({
   const selectedSolanaAccount = useSelector(getLastSelectedSolanaAccount);
   ///: END:ONLY_INCLUDE_IF
 
-  ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
-  const defaultSwapsToken = useSelector(getSwapsDefaultToken, isEqual);
-  ///: END:ONLY_INCLUDE_IF
+  const [showDownloadMobileAppModal, setShowDownloadMobileAppModal] =
+    useState(false);
 
   const { slides } = useCarouselManagement();
 
-  ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
   const { openBridgeExperience } = useBridging();
-  ///: END:ONLY_INCLUDE_IF
 
   const handleCarouselClick = (id: string) => {
-    ///: BEGIN:ONLY_INCLUDE_IF(build-main,build-beta,build-flask)
     if (id === 'bridge') {
-      openBridgeExperience(
-        'Carousel',
-        defaultSwapsToken,
-        location.pathname.includes('asset') ? '&token=native' : '',
-      );
+      // Handle clicking from the wallet overview page carousel
+      openBridgeExperience('Carousel');
     }
-    ///: END:ONLY_INCLUDE_IF
+
+    if (id === BASIC_FUNCTIONALITY_SLIDE.id) {
+      dispatch(openBasicFunctionalityModal());
+    }
 
     if (id === BACKUPANDSYNC_SLIDE.id) {
       dispatch(showModal({ name: TURN_ON_BACKUP_AND_SYNC_MODAL_NAME }));
@@ -106,13 +104,23 @@ export const AccountOverviewLayout = ({
     ///: END:ONLY_INCLUDE_IF
 
     if (id === SMART_ACCOUNT_UPGRADE_SLIDE.id) {
-      dispatch(setAccountDetailsAddress(selectedAccount.address));
+      if (smartAccountOptIn) {
+        dispatch(setAccountDetailsAddress(selectedAccount.address));
+      } else {
+        history.replace(SMART_ACCOUNT_UPDATE);
+      }
+    }
+
+    if (id === DOWNLOAD_MOBILE_APP_SLIDE.id) {
+      setShowDownloadMobileAppModal(true);
     }
 
     trackEvent({
       event: MetaMetricsEventName.BannerSelect,
       category: MetaMetricsEventCategory.Banner,
       properties: {
+        // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         banner_name: id,
       },
     });
@@ -136,6 +144,8 @@ export const AccountOverviewLayout = ({
             event: MetaMetricsEventName.BannerDisplay,
             category: MetaMetricsEventCategory.Banner,
             properties: {
+              // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+              // eslint-disable-next-line @typescript-eslint/naming-convention
               banner_name: slide.id,
             },
           });
@@ -166,6 +176,11 @@ export const AccountOverviewLayout = ({
         )
         ///: END:ONLY_INCLUDE_IF
       }
+      {showDownloadMobileAppModal && (
+        <DownloadMobileAppModal
+          onClose={() => setShowDownloadMobileAppModal(false)}
+        />
+      )}
     </>
   );
 };
